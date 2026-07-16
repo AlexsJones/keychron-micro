@@ -34,12 +34,20 @@ impl Tapper {
         Ok(Tapper { dev })
     }
 
-    pub fn tap(&mut self, key: KeyCode) -> std::io::Result<()> {
-        let down = InputEvent::new(EventType::KEY.0, key.code(), 1);
-        let up = InputEvent::new(EventType::KEY.0, key.code(), 0);
-        // Both in one emit: the kernel syncs after the batch, so the press and
-        // release arrive together rather than as a key held for a scheduler tick.
-        self.dev.emit(&[down, up])
+    /// Press every key in order, then release in reverse. One key is a tap;
+    /// several is a chord, with the leaders held while the last goes down --
+    /// which is what makes ctrl+shift+w a shortcut rather than three letters.
+    pub fn tap(&mut self, keys: &[KeyCode]) -> std::io::Result<()> {
+        let mut ev = Vec::with_capacity(keys.len() * 2);
+        for k in keys {
+            ev.push(InputEvent::new(EventType::KEY.0, k.code(), 1));
+        }
+        for k in keys.iter().rev() {
+            ev.push(InputEvent::new(EventType::KEY.0, k.code(), 0));
+        }
+        // One emit: the kernel syncs after the batch, so the whole chord lands
+        // as a single atomic thing rather than keys held across scheduler ticks.
+        self.dev.emit(&ev)
     }
 }
 

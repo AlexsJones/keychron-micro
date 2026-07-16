@@ -56,11 +56,17 @@ pub struct Bind {
     /// Documentation only: which pictogram the keycap actually shows.
     #[serde(default)]
     pub label: String,
+    /// Documentation only: what the key does, in words, for the cheatsheet.
+    /// Falls back to the script name, which is a poor answer for `tap`
+    /// bindings -- "tap KEY_LEFTALT+KEY_F4" is not what the key is *for*.
+    #[serde(default)]
+    pub does: Option<String>,
     /// Script path, relative to the repo root so the config stays portable.
     #[serde(default)]
     pub run: Option<String>,
-    /// A key to synthesize into whatever window has focus, e.g. "KEY_ENTER".
-    /// Exactly one of `run` or `tap`.
+    /// A keystroke to synthesize into whatever window has focus, e.g.
+    /// "KEY_ENTER", or a chord: "KEY_LEFTALT+KEY_F4". Exactly one of `run` or
+    /// `tap`.
     #[serde(default)]
     pub tap: Option<String>,
 }
@@ -71,8 +77,10 @@ pub enum Do {
     /// Run an executable.
     Run { run: String, script: PathBuf },
     /// Emit a keystroke from the daemon's virtual keyboard, which lands in the
-    /// focused window exactly as if it were typed.
-    Tap { name: String, key: KeyCode },
+    /// focused window exactly as if it were typed. All but the last key are
+    /// held while the last is pressed, so a chord is a chord and not four keys
+    /// in a row.
+    Tap { name: String, keys: Vec<KeyCode> },
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -89,6 +97,8 @@ pub struct Config {
 #[derive(Clone)]
 pub struct Action {
     pub label: String,
+    /// What it does, in words. Empty means "fall back to describe()".
+    pub does: String,
     pub what: Do,
 }
 
@@ -198,15 +208,26 @@ pub fn parse(text: &str, root: &Path) -> std::io::Result<Loaded> {
                 }
             }
             (None, Some(tap)) => {
-                let key = *names.get(tap.as_str()).ok_or_else(|| {
-                    std::io::Error::other(format!(
-                        "{}: tap = {tap:?} is not a key name -- try KEY_ENTER, KEY_ESC",
-                        b.key
-                    ))
-                })?;
+                // "KEY_LEFTALT+KEY_F4" -> hold LEFTALT, press F4, let go.
+                let keys = tap
+                    .split('+')
+                    .map(|part| {
+                        let part = part.trim();
+                        names.get(part).copied().ok_or_else(|| {
+                            std::io::Error::other(format!(
+                                "{}: tap = {tap:?}: {part:?} is not a key name -- try \
+                                 KEY_ENTER, KEY_ESC, or a chord like KEY_LEFTALT+KEY_F4",
+                                b.key
+                            ))
+                        })
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                if keys.is_empty() {
+                    return Err(std::io::Error::other(format!("{}: tap is empty", b.key)));
+                }
                 Do::Tap {
                     name: tap.clone(),
-                    key,
+                    keys,
                 }
             }
             (Some(_), Some(_)) => {
@@ -227,6 +248,7 @@ pub fn parse(text: &str, root: &Path) -> std::io::Result<Loaded> {
             key,
             Action {
                 label: b.label,
+                does: b.does.unwrap_or_default(),
                 what,
             },
         ) {

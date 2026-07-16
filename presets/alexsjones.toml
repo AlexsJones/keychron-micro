@@ -39,35 +39,68 @@ command = "claude"
 args = ["--settings", "{repo}/claude-pad-settings.json", "--dangerously-skip-permissions"]
 
 # Labels name the key as Keychron Launcher shows it, then the keycap on it.
+#
+# The left column ships as M1-M4, macro keys, and a reset leaves those macros
+# empty so they send nothing at all. These four are F13-F16 now, set in Launcher.
+# F13-F16 rather than F1-F4 on purpose: the keymap lives in the pad's EEPROM and
+# travels with it, and nothing anywhere binds F13-F16, so the pad stays inert on
+# a machine that is not running this.
+
+[[bind]]
+key = "KEY_F13"
+label = "M1 -- red medical cross"
+does = "This boot's errors"
+run = "scripts/journal-errors.sh"
+
+# GNOME's own window-close binding, so it shuts whatever has focus. Wayland will
+# not say what that is, and cannot be made to: this is "press Alt+F4 for me",
+# not "close the terminal". Ptyxis asks first when something is still running.
+[[bind]]
+key = "KEY_F14"
+label = "M2 -- orange doorway"
+does = "Close the focused window"
+tap = "KEY_LEFTALT+KEY_F4"
+
+[[bind]]
+key = "KEY_KP5"
+label = "numpad 5 -- green circle"
+does = "This cheatsheet"
+run = "scripts/cheatsheet.sh"
 
 [[bind]]
 key = "KEY_KP6"
 label = "numpad 6 -- red i"
+does = "A Claude session, permissions off"
 run = "scripts/agent-yolo.sh"
 
 [[bind]]
 key = "KEY_KP1"
-label = "numpad 1 -- grey triangle over red i"
+label = "numpad 1 -- grey triangle + red i"
+does = "Raise the terminal"
 run = "scripts/focus-agent.sh"
 
 [[bind]]
 key = "KEY_KP2"
 label = "numpad 2 -- orange X"
+does = "Close the windows this pad opened"
 run = "scripts/close-windows.sh"
 
 [[bind]]
 key = "KEY_KP3"
 label = "numpad 3 -- green people"
+does = "Four agents, tiled, fullscreen"
 run = "scripts/agents-tmux.sh"
 
 [[bind]]
 key = "KEY_KP4"
 label = "numpad 4 -- blue square outline"
+does = "A plain terminal"
 run = "scripts/terminal.sh"
 
 [[bind]]
 key = "KEY_KP8"
-label = "numpad 8 -- green 4-square grid (attach to fleet)"
+label = "numpad 8 -- green 4-square grid"
+does = "Attach to the running agents"
 run = "scripts/agents-attach.sh"
 
 # The rotary encoder. These only arrive once the encoder is reprogrammed in
@@ -78,17 +111,20 @@ run = "scripts/agents-attach.sh"
 # all under Launcher's Function Keys tab. The volume knob is the price.
 [[bind]]
 key = "KEY_PAGEDOWN"
-label = "knob clockwise -- next agent pane"
+label = "knob clockwise"
+does = "Next agent pane"
 run = "scripts/agents-pane-next.sh"
 
 [[bind]]
 key = "KEY_PAGEUP"
-label = "knob anticlockwise -- previous agent pane"
+label = "knob anticlockwise"
+does = "Previous agent pane"
 run = "scripts/agents-pane-prev.sh"
 
 [[bind]]
 key = "KEY_INSERT"
-label = "knob press -- detach from the fleet"
+label = "knob press"
+does = "Detach from the fleet"
 run = "scripts/agents-detach.sh"
 
 # Answers the prompt in whatever window has focus. Not a script: the daemon has
@@ -96,22 +132,26 @@ run = "scripts/agents-detach.sh"
 # (numpad 1) or the keystroke lands wherever you were.
 [[bind]]
 key = "KEY_KP7"
-label = "numpad 7 -- upright figure (approve)"
+label = "numpad 7 -- upright figure"
+does = "Approve (Enter)"
 tap = "KEY_ENTER"
 
 [[bind]]
 key = "KEY_KP9"
-label = "numpad 9 -- dark X (decline)"
+label = "numpad 9 -- dark X"
+does = "Decline (Esc)"
 tap = "KEY_ESC"
 
 [[bind]]
 key = "KEY_KP0"
 label = "numpad 0 -- PRANIC LIFT 777 (2u)"
+does = "Activities overview"
 run = "scripts/overview.sh"
 
 [[bind]]
 key = "KEY_KPENTER"
 label = "N.Ent -- crosshair (2u)"
+does = "This pad’s config page"
 run = "scripts/web-ui.sh"
 
 # [[bind]]

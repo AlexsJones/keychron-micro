@@ -84,9 +84,14 @@ red message rather than a dead pad on the next reboot.
 ### The fields
 
 - **`key`** is the evdev name from step 1.
-- **`label`** is documentation only, and worth writing. The legends and the
-  keycodes have nothing to do with each other: a key with a medical cross on it
-  may send `KEY_KP1`. In six months you will not remember which.
+- **`label`** is the keycap: what is printed on the key you press. Documentation
+  only, and worth writing. The legends and the keycodes have nothing to do with
+  each other: a key with a medical cross on it may send `KEY_KP1`, and in six
+  months you will not remember which. Written `"<key> -- <cap>"`, the cheatsheet
+  splits it into columns.
+- **`does`** is what the key is *for*, in words, for the cheatsheet. Optional: it
+  falls back to the script name, which is a fair answer for `journal-errors.sh`
+  and a poor one for `tap KEY_LEFTALT+KEY_F4`.
 - **`run`** is relative to this repo, so a clone reproduces your setup as-is.
 - **`tap`** instead of `run` sends a keystroke to the focused window. Exactly one
   of the two.

@@ -43,6 +43,7 @@ impl Shared {
                     "key": config::key_name(*k).unwrap_or_else(|| format!("{k:?}")),
                     "label": a.label,
                     "run": a.what.describe(),
+                    "does": if a.does.is_empty() { a.what.describe() } else { a.does.clone() },
                 })
             })
             .collect();

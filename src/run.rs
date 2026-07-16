@@ -264,11 +264,11 @@ pub fn run(config_path: &Path, root: &Path) -> std::io::Result<()> {
                 // Handled here rather than on the lighting thread: that thread
                 // blocks while a script runs, and a tap queued behind a terminal
                 // launch would land whole seconds after you pressed it.
-                Do::Tap { name, key } => {
+                Do::Tap { name, keys } => {
                     println!("{key:?} -> {label} (tap {name})");
                     match tapper.as_mut() {
                         Some(t) => {
-                            if let Err(e) = t.tap(key) {
+                            if let Err(e) = t.tap(&keys) {
                                 eprintln!("{label}: tap {name}: {e}");
                             }
                         }
@@ -294,8 +294,9 @@ fn tap_keys(shared: &Shared) -> Vec<evdev::KeyCode> {
         .unwrap()
         .values()
         .filter_map(|a| match &a.what {
-            Do::Tap { key, .. } => Some(*key),
+            Do::Tap { keys, .. } => Some(keys.clone()),
             Do::Run { .. } => None,
         })
+        .flatten()
         .collect()
 }
