@@ -1,4 +1,6 @@
-<img src="icon.svg" width="88" align="right" alt="">
+<p align="center">
+  <img src="icon.svg" width="96" alt="keychron-micro">
+</p>
 
 # keychron-micro
 
