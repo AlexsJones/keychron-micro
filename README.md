@@ -4,8 +4,16 @@
 
 # keychron-micro
 
-Turn a Keychron Q0 Max into a scriptable macropad on Wayland. Every key runs a
+Turn a Keychron Q0 Max into a scriptable macropad on **Linux**. Every key runs a
 script from this repo; a small web UI shows what is bound and edits it live.
+
+> **Linux only, and not by accident.** This works by grabbing the pad at the
+> evdev layer and runs as a systemd user service, so it needs a Linux desktop.
+> It is built and used on Fedora Workstation with GNOME on Wayland. Other distros
+> and compositors should work, with the caveats in
+> [what Wayland will not let you do](#what-wayland-will-not-let-you-do); a couple
+> of keys are GNOME-specific and say so. There is no macOS or Windows port and
+> there will not be one, since none of this exists there.
 
 **The board lights up with what your scripts are doing.** The whole pad goes
 yellow while a script runs, green when it exits cleanly, red when it fails, and
