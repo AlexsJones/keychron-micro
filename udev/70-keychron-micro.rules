@@ -14,3 +14,14 @@ SUBSYSTEM=="input", KERNEL=="event*", ATTRS{idVendor}=="3434", ATTRS{idProduct}=
 
 # Vendor HID interface (usage page 0xFF60) -- VIA/QMK raw HID, used for the LEDs.
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", ATTRS{idProduct}=="0800", TAG+="uaccess"
+
+# /dev/uinput, for `tap` bindings: the daemon creates a virtual keyboard so a pad
+# key can answer a prompt in the focused window. Only needed if you bind a `tap`.
+#
+# Note this is a wider grant than the two above, which name one VID:PID. Write
+# access to uinput means the ability to create any input device and synthesize
+# any keystroke -- for the seat user, on their own session. Steam's packaged
+# rules do exactly this (60-steam-input.rules), so on many machines it is already
+# granted and this rule changes nothing. If you do not want it, delete this line:
+# every `run` binding works without it, and the daemon says so once and carries on.
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"

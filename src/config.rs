@@ -57,7 +57,22 @@ pub struct Bind {
     #[serde(default)]
     pub label: String,
     /// Script path, relative to the repo root so the config stays portable.
-    pub run: String,
+    #[serde(default)]
+    pub run: Option<String>,
+    /// A key to synthesize into whatever window has focus, e.g. "KEY_ENTER".
+    /// Exactly one of `run` or `tap`.
+    #[serde(default)]
+    pub tap: Option<String>,
+}
+
+/// What a bound key does.
+#[derive(Clone)]
+pub enum Do {
+    /// Run an executable.
+    Run { run: String, script: PathBuf },
+    /// Emit a keystroke from the daemon's virtual keyboard, which lands in the
+    /// focused window exactly as if it were typed.
+    Tap { name: String, key: KeyCode },
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -70,13 +85,21 @@ pub struct Config {
     pub binds: Vec<Bind>,
 }
 
-/// Resolved binding: the key to match, and the absolute script to run.
+/// Resolved binding: the key to match, and what it does.
 #[derive(Clone)]
 pub struct Action {
     pub label: String,
-    /// As written in config.toml, for display.
-    pub run: String,
-    pub script: PathBuf,
+    pub what: Do,
+}
+
+impl Do {
+    /// How it reads in the UI and the log.
+    pub fn describe(&self) -> String {
+        match self {
+            Do::Run { run, .. } => run.clone(),
+            Do::Tap { name, .. } => format!("tap {name}"),
+        }
+    }
 }
 
 pub struct Loaded {
@@ -153,32 +176,64 @@ pub fn parse(text: &str, root: &Path) -> std::io::Result<Loaded> {
             ))
         })?;
 
-        let script = root.join(&b.run);
-        if !script.is_file() {
-            return Err(std::io::Error::other(format!(
-                "{}: no such script (from key {})",
-                script.display(),
-                b.key
-            )));
-        }
-        if !is_executable(&script) {
-            return Err(std::io::Error::other(format!(
-                "{} is not executable -- chmod +x it",
-                script.display()
-            )));
-        }
+        let what = match (&b.run, &b.tap) {
+            (Some(run), None) => {
+                let script = root.join(run);
+                if !script.is_file() {
+                    return Err(std::io::Error::other(format!(
+                        "{}: no such script (from key {})",
+                        script.display(),
+                        b.key
+                    )));
+                }
+                if !is_executable(&script) {
+                    return Err(std::io::Error::other(format!(
+                        "{} is not executable -- chmod +x it",
+                        script.display()
+                    )));
+                }
+                Do::Run {
+                    run: run.clone(),
+                    script,
+                }
+            }
+            (None, Some(tap)) => {
+                let key = *names.get(tap.as_str()).ok_or_else(|| {
+                    std::io::Error::other(format!(
+                        "{}: tap = {tap:?} is not a key name -- try KEY_ENTER, KEY_ESC",
+                        b.key
+                    ))
+                })?;
+                Do::Tap {
+                    name: tap.clone(),
+                    key,
+                }
+            }
+            (Some(_), Some(_)) => {
+                return Err(std::io::Error::other(format!(
+                    "{}: has both `run` and `tap` -- pick one",
+                    b.key
+                )))
+            }
+            (None, None) => {
+                return Err(std::io::Error::other(format!(
+                    "{}: needs a `run` or a `tap`",
+                    b.key
+                )))
+            }
+        };
 
         if let Some(prev) = binds.insert(
             key,
             Action {
                 label: b.label,
-                run: b.run,
-                script,
+                what,
             },
         ) {
             return Err(std::io::Error::other(format!(
                 "{} is bound twice (already bound to {})",
-                b.key, prev.run
+                b.key,
+                prev.what.describe()
             )));
         }
     }

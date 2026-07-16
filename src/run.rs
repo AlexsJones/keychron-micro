@@ -1,5 +1,6 @@
-use crate::config;
+use crate::config::{self, Do};
 use crate::status::Status;
+use crate::tap::Tapper;
 use crate::via::{self, Via};
 use crate::web::{self, Shared};
 use evdev::EventSummary;
@@ -9,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// How long a finished script's colour lingers before the pad returns to idle.
 const SETTLE: Duration = Duration::from_millis(900);
@@ -80,7 +81,8 @@ fn watch_pipe(path: PathBuf, tx: Sender<Msg>) {
 }
 
 /// Owns the pad's lighting. Kept on one thread so key presses and pipe writes
-/// cannot interleave half-finished HID transactions.
+/// cannot interleave half-finished HID transactions, and so scripts run in the
+/// order they were pressed -- which matters when the knob is cycling panes.
 fn lighting(rx: mpsc::Receiver<Msg>, mut v: Via, shared: Arc<Shared>) {
     let paint = |v: &mut Via, s: Status| {
         *shared.status.lock().unwrap() = s;
@@ -90,9 +92,38 @@ fn lighting(rx: mpsc::Receiver<Msg>, mut v: Via, shared: Arc<Shared>) {
         }
     };
 
-    for msg in rx {
+    // When to drop back to idle, or None if we are already there. Waiting for it
+    // as a recv timeout rather than sleeping is the whole point: a blocking
+    // sleep here would hold up every key pressed during it, and the encoder
+    // fires far faster than SETTLE. Spinning the knob would queue seconds of
+    // backlog and the pad would still be catching up after you stopped.
+    let mut settle_at: Option<Instant> = None;
+
+    loop {
+        let wait = match settle_at {
+            Some(t) => t.saturating_duration_since(Instant::now()),
+            // Nothing pending: block until there is.
+            None => Duration::from_secs(3600),
+        };
+
+        let msg = match rx.recv_timeout(wait) {
+            Ok(m) => m,
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                paint(&mut v, Status::Idle);
+                settle_at = None;
+                continue;
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => return,
+        };
+
         match msg {
-            Msg::Set(s) => paint(&mut v, s),
+            // An explicit state, from a script or a Claude hook. It stands until
+            // something else changes it, so no settle: "waiting for you" should
+            // not time out into white after a second.
+            Msg::Set(s) => {
+                paint(&mut v, s);
+                settle_at = None;
+            }
             Msg::Fire { label, script } => {
                 paint(&mut v, Status::Thinking);
                 // Scripts read the harness from the environment rather than
@@ -120,8 +151,10 @@ fn lighting(rx: mpsc::Receiver<Msg>, mut v: Via, shared: Arc<Shared>) {
                     }
                 };
                 paint(&mut v, s);
-                std::thread::sleep(SETTLE);
-                paint(&mut v, Status::Idle);
+                // Push the deadline out rather than sleep to it. Held down or
+                // spun, the pad stays lit and settles once, SETTLE after the
+                // last one, instead of strobing through a queue.
+                settle_at = Some(Instant::now() + SETTLE);
             }
         }
     }
@@ -189,6 +222,23 @@ pub fn run(config_path: &Path, root: &Path) -> std::io::Result<()> {
         });
     }
 
+    // One virtual keyboard for the life of the daemon, declaring every key any
+    // `tap` binding might send. A uinput device's capabilities are fixed at
+    // creation, and a fresh device per tap would need ~200ms for the compositor
+    // to notice it -- useless for a key you press to answer a prompt.
+    let mut tapper = match tap_keys(&shared) {
+        keys if keys.is_empty() => None,
+        keys => match Tapper::new(keys.into_iter()) {
+            Ok(t) => Some(t),
+            // Not fatal: `run` bindings are unaffected, and saying why once is
+            // better than failing silently on every press.
+            Err(e) => {
+                eprintln!("tap: {e} -- `tap` bindings will do nothing");
+                None
+            }
+        },
+    };
+
     loop {
         for ev in dev.fetch_events()? {
             let EventSummary::Key(_, key, 1) = ev.destructure() else {
@@ -206,13 +256,46 @@ pub fn run(config_path: &Path, root: &Path) -> std::io::Result<()> {
                 .read()
                 .unwrap()
                 .get(&key)
-                .map(|a| (a.label.clone(), a.script.clone()));
+                .map(|a| (a.label.clone(), a.what.clone()));
 
-            if let Some((label, script)) = hit {
-                println!("{key:?} -> {label}");
-                tx.send(Msg::Fire { label, script })
-                    .map_err(|_| std::io::Error::other("lighting thread died"))?;
+            let Some((label, what)) = hit else { continue };
+
+            match what {
+                // Handled here rather than on the lighting thread: that thread
+                // blocks while a script runs, and a tap queued behind a terminal
+                // launch would land whole seconds after you pressed it.
+                Do::Tap { name, key } => {
+                    println!("{key:?} -> {label} (tap {name})");
+                    match tapper.as_mut() {
+                        Some(t) => {
+                            if let Err(e) = t.tap(key) {
+                                eprintln!("{label}: tap {name}: {e}");
+                            }
+                        }
+                        None => eprintln!("{label}: no virtual keyboard, cannot tap {name}"),
+                    }
+                }
+                Do::Run { script, .. } => {
+                    println!("{key:?} -> {label}");
+                    tx.send(Msg::Fire { label, script })
+                        .map_err(|_| std::io::Error::other("lighting thread died"))?;
+                }
             }
         }
     }
+}
+
+/// Every key any `tap` binding might emit, which is what the virtual keyboard
+/// has to declare up front.
+fn tap_keys(shared: &Shared) -> Vec<evdev::KeyCode> {
+    shared
+        .binds
+        .read()
+        .unwrap()
+        .values()
+        .filter_map(|a| match &a.what {
+            Do::Tap { key, .. } => Some(*key),
+            Do::Run { .. } => None,
+        })
+        .collect()
 }

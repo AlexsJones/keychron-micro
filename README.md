@@ -81,13 +81,64 @@ run = "scripts/my-script.sh"
 config that would not load is rejected and never written, so a typo costs you a
 red message rather than a dead pad on the next reboot.
 
-### The three fields
+### The fields
 
 - **`key`** is the evdev name from step 1.
 - **`label`** is documentation only, and worth writing. The legends and the
   keycodes have nothing to do with each other: a key with a medical cross on it
   may send `KEY_KP1`. In six months you will not remember which.
 - **`run`** is relative to this repo, so a clone reproduces your setup as-is.
+- **`tap`** instead of `run` sends a keystroke to the focused window. Exactly one
+  of the two.
+
+### Answering a prompt: `tap`
+
+```toml
+[[bind]]
+key = "KEY_KP7"
+label = "approve"
+tap = "KEY_ENTER"
+```
+
+The daemon keeps a virtual keyboard on `/dev/uinput` and types on it, so the
+keystroke reaches the focused window exactly as if you had typed it. Nothing is
+being bypassed: Wayland will not let one window send input to another, and this
+does not try to. It creates a keyboard, which the kernel is happy to do, and the
+compositor delivers to whatever has focus, wherever that happens to be. Focus the
+window first (there is a script for that) or your Enter lands somewhere else.
+
+It is a config action rather than a script for a reason. A script would have to
+make a uinput device per press and wait a couple of hundred milliseconds for the
+compositor to notice it, which is no use for a key you press to answer a prompt.
+The daemon's keyboard is made once, at startup, and taps instantly.
+
+`make install` adds a udev rule for `/dev/uinput`. That is a wider grant than the
+pad rules, which name one VID:PID: write access to uinput is the ability to
+synthesize any input, for the seat user on their own session. Steam's packaged
+rules already do this on many machines. Delete the line from
+`udev/70-keychron-micro.rules` if you would rather not have it; every `run`
+binding works without it and the daemon says so once and carries on.
+
+### The rotary encoder
+
+It will not work until you reprogram it, and the reason is worth knowing.
+
+The pad presents five evdev nodes. The daemon grabs the one carrying ordinary
+keys, but the knob ships sending volume and mute as *consumer control* codes,
+which land on a different node entirely. That is why the volume knob keeps
+working while every key on the pad is being swallowed, and it means the encoder
+is invisible to the daemon: the codes never arrive.
+
+Reprogram the encoder in [Keychron Launcher](https://launcher.keychron.com) to
+send ordinary keys (`PgUp`, `PgDn` and `Ins` are free on a stock pad, and are in
+the Function Keys tab) and they land on the grabbed node, where you can bind them
+like any other key. The volume knob is the price, and it is not only the price
+here: the keymap lives in the pad's own EEPROM, so it travels with the hardware.
+On a machine without this daemon, that knob now scrolls pages.
+
+Layer 1 avoids that. Leave layer 0 as volume, program the *layer 1* encoder
+instead, and hold `MO(1)` to cycle panes. `MO(1)` never sends a keycode of its
+own, so that key is otherwise unbindable anyway.
 
 ### The keycodes do not matter
 

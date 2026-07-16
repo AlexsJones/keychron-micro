@@ -42,7 +42,7 @@ impl Shared {
                 json!({
                     "key": config::key_name(*k).unwrap_or_else(|| format!("{k:?}")),
                     "label": a.label,
-                    "run": a.run,
+                    "run": a.what.describe(),
                 })
             })
             .collect();

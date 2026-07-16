@@ -2,6 +2,7 @@ mod config;
 mod pad;
 mod run;
 mod status;
+mod tap;
 mod via;
 mod web;
 

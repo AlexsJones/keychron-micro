@@ -1,8 +1,6 @@
-# AlexsJones's setup -- the whole pad, as actually used day to day.
+# Bind pad keys to scripts.
 #
-# `make preset-use NAME=alexsjones` to adopt it. Keycaps are a pictogram set, so
-# the labels name the Launcher key first, then the icon on it -- yours will show
-# something else entirely.
+# `key` is the evdev name reported by `keychron-micro learn`.
 # `label` is documentation only -- record which icon the cap actually shows,
 #         since the legends are pictograms and you will not remember them.
 # `run`  is relative to this repo, so the whole thing stays portable: clone,
@@ -66,6 +64,45 @@ run = "scripts/agents-tmux.sh"
 key = "KEY_KP4"
 label = "numpad 4 -- blue square outline"
 run = "scripts/terminal.sh"
+
+[[bind]]
+key = "KEY_KP8"
+label = "numpad 8 -- green 4-square grid (attach to fleet)"
+run = "scripts/agents-attach.sh"
+
+# The rotary encoder. These only arrive once the encoder is reprogrammed in
+# Keychron Launcher on layer 0: as shipped it sends volume/mute as consumer-
+# control codes, which land on a different evdev node that the daemon does not
+# grab. That is why the knob still worked as volume while every key on the pad
+# was being eaten. Set rotate-CW to PgDn, rotate-CCW to PgUp and press to Ins,
+# all under Launcher's Function Keys tab. The volume knob is the price.
+[[bind]]
+key = "KEY_PAGEDOWN"
+label = "knob clockwise -- next agent pane"
+run = "scripts/agents-pane-next.sh"
+
+[[bind]]
+key = "KEY_PAGEUP"
+label = "knob anticlockwise -- previous agent pane"
+run = "scripts/agents-pane-prev.sh"
+
+[[bind]]
+key = "KEY_INSERT"
+label = "knob press -- detach from the fleet"
+run = "scripts/agents-detach.sh"
+
+# Answers the prompt in whatever window has focus. Not a script: the daemon has
+# a virtual keyboard for this, and taps it instantly. Focus the agent first
+# (numpad 1) or the keystroke lands wherever you were.
+[[bind]]
+key = "KEY_KP7"
+label = "numpad 7 -- upright figure (approve)"
+tap = "KEY_ENTER"
+
+[[bind]]
+key = "KEY_KP9"
+label = "numpad 9 -- dark X (decline)"
+tap = "KEY_ESC"
 
 [[bind]]
 key = "KEY_KP0"
