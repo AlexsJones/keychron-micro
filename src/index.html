@@ -1,0 +1,208 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>keychron-micro</title>
+<style>
+  :root {
+    --bg: #16161a; --panel: #1e1e24; --line: #33333d;
+    --fg: #e6e6ea; --dim: #9a9aa8; --accent: #7aa2f7;
+    --ok: #45c46a; --bad: #f7768e;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f6f8; --panel: #fff; --line: #dcdce4;
+      --fg: #1c1c22; --dim: #6a6a78; --accent: #3d5afe;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2rem 1.25rem; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 60rem; margin: 0 auto; }
+  h1 { font-size: 1.05rem; margin: 0; letter-spacing: .02em; }
+  h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em;
+       color: var(--dim); margin: 2rem 0 .75rem; font-weight: 600; }
+  header { display: flex; align-items: baseline; gap: .75rem; flex-wrap: wrap;
+           border-bottom: 1px solid var(--line); padding-bottom: 1rem; }
+  .pad { color: var(--dim); font-size: .85rem; }
+  .panel { background: var(--panel); border: 1px solid var(--line);
+           border-radius: 10px; padding: 1rem; }
+
+  /* Status dot mirrors the board, so the page and the pad never disagree. */
+  .status { margin-left: auto; display: flex; align-items: center; gap: .5rem;
+            font-size: .85rem; color: var(--dim); }
+  .dot { width: .7rem; height: .7rem; border-radius: 50%; background: #888;
+         box-shadow: 0 0 .5rem currentColor; }
+  .dot.idle { background: #ddd; color: #ddd; }
+  .dot.working { background: #e5c07b; color: #e5c07b; }
+  .dot.complete { background: var(--ok); color: var(--ok); }
+  .dot.needs { background: #c678dd; color: #c678dd; }
+  .dot.error { background: var(--bad); color: var(--bad); }
+
+  .live { display: flex; align-items: center; gap: .75rem; }
+  .live code { font-size: 1.15rem; padding: .3rem .6rem; border-radius: 6px;
+               background: var(--bg); border: 1px solid var(--line); }
+  .live .hint { color: var(--dim); font-size: .85rem; }
+  .flash { animation: flash .5s ease-out; }
+  @keyframes flash { from { background: var(--accent); color: #fff; } }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: .75rem; text-transform: uppercase;
+       letter-spacing: .06em; color: var(--dim); padding: 0 .6rem .5rem; }
+  td { padding: .55rem .6rem; border-top: 1px solid var(--line);
+       vertical-align: middle; }
+  td.key code { background: var(--bg); border: 1px solid var(--line);
+                padding: .15rem .45rem; border-radius: 5px; font-size: .85rem; }
+  td.run { color: var(--dim); font-family: ui-monospace, monospace; font-size: .85rem; }
+  .wrap { overflow-x: auto; }
+
+  textarea {
+    width: 100%; min-height: 22rem; resize: vertical; padding: .85rem;
+    background: var(--bg); color: var(--fg); border: 1px solid var(--line);
+    border-radius: 8px; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+    tab-size: 2;
+  }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .bar { display: flex; align-items: center; gap: .75rem; margin-top: .75rem; }
+  button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 7px;
+    padding: .5rem 1.1rem; font-size: .9rem; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  button.ghost { background: transparent; color: var(--dim); border: 1px solid var(--line); }
+  .msg { font-size: .85rem; white-space: pre-wrap; font-family: ui-monospace, monospace; }
+  .msg.ok { color: var(--ok); } .msg.bad { color: var(--bad); }
+  footer { margin-top: 2.5rem; color: var(--dim); font-size: .8rem;
+           border-top: 1px solid var(--line); padding-top: 1rem; }
+</style>
+
+<main>
+  <header>
+    <h1>keychron-micro</h1>
+    <span class="pad" id="pad">connecting…</span>
+    <span class="status"><span class="dot" id="dot"></span><span id="statusText">—</span></span>
+  </header>
+
+  <h2>Agent</h2>
+  <div class="panel live">
+    <code id="harness">—</code>
+    <span class="hint">What <code>[harness]</code> launches. Scripts take this from
+      the daemon rather than naming an agent, so changing it below moves every
+      script at once.</span>
+  </div>
+
+  <h2>Press a key</h2>
+  <div class="panel live">
+    <code id="lastKey">—</code>
+    <span class="hint">Press any key on the pad: its name appears here. Paste that
+      into <code>key</code> below. The pad is grabbed, so it reaches nothing else.</span>
+  </div>
+
+  <h2>Bindings</h2>
+  <div class="panel wrap">
+    <table>
+      <thead><tr><th>Key</th><th>Keycap</th><th>Runs</th></tr></thead>
+      <tbody id="binds"></tbody>
+    </table>
+  </div>
+
+  <h2>Config</h2>
+  <div class="panel">
+    <textarea id="cfg" spellcheck="false" aria-label="config.toml"></textarea>
+    <div class="bar">
+      <button id="save">Save &amp; apply</button>
+      <button id="revert" class="ghost">Revert</button>
+      <span class="msg" id="msg"></span>
+    </div>
+  </div>
+
+  <footer>
+    Saving validates first — an unparseable config, an unknown key, or a missing
+    script is rejected and never written. A good save applies at once; no restart,
+    no dropped keypress. <span id="path"></span>
+  </footer>
+</main>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const DOT = { "idle (white)": "idle", "working (yellow)": "working",
+                "complete (green)": "complete", "needs input (magenta)": "needs",
+                "error (red)": "error" };
+
+  let onDisk = null;    // last known saved text
+  let editing = false;  // do not clobber the textarea mid-type
+  let lastSeen = null;
+
+  $("cfg").addEventListener("input", () => {
+    editing = $("cfg").value !== onDisk;
+    $("msg").textContent = "";
+  });
+
+  async function poll() {
+    let s;
+    try {
+      s = await (await fetch("/api/state")).json();
+    } catch {
+      $("pad").textContent = "daemon not responding";
+      return;
+    }
+    $("pad").textContent = s.pad;
+    $("path").textContent = s.configPath;
+    $("statusText").textContent = s.status;
+    $("harness").textContent = s.harness;
+    $("dot").className = "dot " + (DOT[s.status] || "");
+
+    if (s.lastKey && s.lastKey !== lastSeen) {
+      lastSeen = s.lastKey;
+      const el = $("lastKey");
+      el.textContent = s.lastKey;
+      el.classList.remove("flash");
+      void el.offsetWidth;           // restart the animation
+      el.classList.add("flash");
+    }
+
+    $("binds").innerHTML = s.binds.length
+      ? s.binds.map(b => `<tr><td class="key"><code>${esc(b.key)}</code></td>
+          <td>${esc(b.label) || "<span style='color:var(--dim)'>—</span>"}</td>
+          <td class="run">${esc(b.run)}</td></tr>`).join("")
+      : `<tr><td colspan="3" style="color:var(--dim)">Nothing bound yet.</td></tr>`;
+
+    onDisk = s.config;
+    if (!editing) $("cfg").value = s.config;
+  }
+
+  const esc = t => (t ?? "").replace(/[&<>"]/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  $("save").onclick = async () => {
+    const btn = $("save"), msg = $("msg");
+    btn.disabled = true; msg.textContent = "";
+    try {
+      const r = await fetch("/api/config", { method: "POST", body: $("cfg").value });
+      const j = await r.json();
+      if (r.ok) {
+        msg.className = "msg ok";
+        msg.textContent = `saved — ${j.bound} key${j.bound === 1 ? "" : "s"} bound`;
+        editing = false;
+        await poll();
+      } else {
+        msg.className = "msg bad";
+        msg.textContent = j.error || `save failed (${r.status})`;
+      }
+    } catch (e) {
+      msg.className = "msg bad";
+      msg.textContent = String(e);
+    }
+    btn.disabled = false;
+  };
+
+  $("revert").onclick = () => {
+    $("cfg").value = onDisk ?? "";
+    editing = false;
+    $("msg").textContent = "";
+  };
+
+  poll();
+  setInterval(poll, 700);
+</script>

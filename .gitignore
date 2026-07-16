@@ -1,0 +1,8 @@
+/target
+
+# The live config: yours, machine-specific, and rewritten by the web UI on every
+# save. Tracking it would mean every tweak dirties the tree and every pull is a
+# conflict. Publish a setup with `make preset-save NAME=...` instead -- presets/
+# is the tracked half of this.
+/config.toml
+/config.toml.new

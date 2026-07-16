@@ -1,0 +1,16 @@
+# Grant the logged-in seat user access to the Keychron Q0 Max only.
+#
+# uaccess attaches an ACL for whoever is on the active seat, so the daemon runs
+# unprivileged and can launch GUI apps in the session. Fedora's stock rules
+# deliberately withhold uaccess from keyboards, since read access to a keyboard
+# is read access to everything you type -- hence this narrow VID:PID match
+# rather than joining the `input` group, which would cover every device.
+#
+# Install: sudo cp udev/70-keychron-micro.rules /etc/udev/rules.d/
+#          sudo udevadm control --reload-rules && sudo udevadm trigger
+
+# Key events (evdev) -- what the daemon grabs.
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{idVendor}=="3434", ATTRS{idProduct}=="0800", TAG+="uaccess"
+
+# Vendor HID interface (usage page 0xFF60) -- VIA/QMK raw HID, used for the LEDs.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", ATTRS{idProduct}=="0800", TAG+="uaccess"

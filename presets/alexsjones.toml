@@ -1,0 +1,110 @@
+# AlexsJones's setup -- the whole pad, as actually used day to day.
+#
+# `make preset-use NAME=alexsjones` to adopt it. Keycaps are a pictogram set, so
+# the labels name the Launcher key first, then the icon on it -- yours will show
+# something else entirely.
+# `label` is documentation only -- record which icon the cap actually shows,
+#         since the legends are pictograms and you will not remember them.
+# `run`  is relative to this repo, so the whole thing stays portable: clone,
+#         run install.sh, and every key does the same thing on any machine.
+#
+# The keycaps are not the keycodes. The pad was reset to Keychron's factory
+# numpad map, so the red "i" cap sends KP6 -- the legends and the codes have
+# nothing to do with each other. That is what `label` is for.
+#
+# Nothing here needs the pad reprogrammed: the daemon grabs it exclusively, so
+# these codes never reach any other window and a numpad 6 is as good a name as
+# any. keymap-backup.json holds the pre-reset Dota map if it is ever wanted.
+
+[web]
+# http://127.0.0.1:7373 -- shows what is bound, names the key you press, and
+# edits this file. Localhost only, always: it rewrites this config, and every
+# `run` here is a script the daemon executes on a keypress. 0 disables it.
+port = 7373
+
+[harness]
+# The coding agent the scripts open. Change it here, once, and every script
+# follows -- they read $KEYCHRON_HARNESS and $KEYCHRON_HARNESS_ARGS from the
+# daemon rather than naming an agent themselves.
+#
+# {repo} expands to this repo, so args can name files that ship alongside this
+# config without hardcoding where it was cloned.
+#
+# To move to codex later, this is the whole edit:
+#     command = "codex"
+#     args = ["--dangerously-bypass-approvals-and-sandbox"]
+#
+# Note the hook settings below are Claude's: they colour the pad from its
+# session lifecycle. Another agent will need its own equivalent, and dropping
+# the --settings arg simply means no colour from the agent -- keys still work.
+command = "claude"
+args = ["--settings", "{repo}/claude-pad-settings.json", "--dangerously-skip-permissions"]
+
+# Labels name the key as Keychron Launcher shows it, then the keycap on it.
+
+[[bind]]
+key = "KEY_KP6"
+label = "numpad 6 -- red i"
+run = "scripts/agent-yolo.sh"
+
+[[bind]]
+key = "KEY_KP1"
+label = "numpad 1 -- grey triangle over red i"
+run = "scripts/focus-agent.sh"
+
+[[bind]]
+key = "KEY_KP2"
+label = "numpad 2 -- orange X"
+run = "scripts/close-windows.sh"
+
+[[bind]]
+key = "KEY_KP3"
+label = "numpad 3 -- green people"
+run = "scripts/agents-tmux.sh"
+
+[[bind]]
+key = "KEY_KP4"
+label = "numpad 4 -- blue square outline"
+run = "scripts/terminal.sh"
+
+[[bind]]
+key = "KEY_KP0"
+label = "numpad 0 -- PRANIC LIFT 777 (2u)"
+run = "scripts/overview.sh"
+
+[[bind]]
+key = "KEY_KPENTER"
+label = "N.Ent -- crosshair (2u)"
+run = "scripts/web-ui.sh"
+
+# [[bind]]
+# key = "KEY_KP7"
+# label = "numpad 7 -- dark figure, red dot"
+# run = "scripts/journal-errors.sh"
+
+# ---------------------------------------------------------------------------
+# The pad, as it now sends. Free keys, with the code each one reports:
+#
+#   knob turn/press      VOL±/MUTE   -- firmware, never reaches the daemon
+#   orange stripes       ESC         grey target          DEL
+#   FUSE                 TAB         comma                BACKSPACE
+#   red medical cross    M1  (dead)  red/green circle     NUMLOCK
+#   blue/green doorway   KPSLASH     blue triangle        KPASTERISK
+#   red Y                KPMINUS     orange doorway       M2  (dead)
+#   dark figure          KP7         green 4-square grid  KP8
+#   dark X               KP9         up arrow DRUZE (2u)  KPPLUS
+#   green cross+figure   M3  (dead)  blue square outline  KP4
+#   green circle         KP5         red i                KP6   <- bound above
+#   orange block         M4  (dead)  grey triangle + i    KP1
+#   orange X             KP2         green people         KP3
+#   crosshair (2u)       KPENTER     green square         MO(1) -- layer, dead
+#   PRANIC LIFT 777 (2u) KP0         PADME                KPDOT
+#
+# (dead) = the reset left M1-M4 as empty macros, so those four keys send
+# nothing at all. Give them any unused code in Launcher to use them -- F13-F16
+# under the Custom tab, or Ins/Home/PgUp/Print from Basic. It does not matter
+# which: the grab means nothing escapes to collide with your real keyboard.
+#
+# MO(1) switches to layer 1 inside the firmware and sends no keycode, so it can
+# never be bound here. Layer 1 is empty and free for a second bank of scripts.
+# ---------------------------------------------------------------------------

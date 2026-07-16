@@ -1,0 +1,29 @@
+[Unit]
+Description=Keychron Q0 Max script pad
+Documentation=file://@REPO@/README.md
+
+# The scripts open terminals and GUI apps, which need the session's
+# WAYLAND_DISPLAY and DBUS_SESSION_BUS_ADDRESS. Those only exist once the
+# graphical session is up, and must go when it does -- a pad daemon outliving
+# the session it launches windows into is no use to anyone.
+PartOf=graphical-session.target
+After=graphical-session.target
+
+# Unplugging the pad exits non-zero and is entirely routine, so no start-rate
+# limit: the daemon must keep retrying until the pad comes back, however long
+# that takes. This belongs to [Unit] -- systemd ignores it under [Service].
+# The cost is that a genuinely broken config.toml also retries every few
+# seconds rather than stopping loudly; `make logs` shows the reason why.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=@BIN@ run
+
+# The pad is grabbed exclusively, so a dead daemon means dead keys: always
+# come back.
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=graphical-session.target

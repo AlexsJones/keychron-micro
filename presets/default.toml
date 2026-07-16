@@ -1,0 +1,92 @@
+# Default preset -- what a fresh clone gets.
+#
+# Copied to config.toml by `make install`. Edit config.toml, not this file:
+# config.toml is yours and gitignored, this is the tracked starting point.
+#
+# Only the demo key is bound. Everything else in scripts/ is real and ready --
+# uncomment what you want. Nothing here launches an agent until you say so.
+#
+# These keycodes are Keychron's factory numpad map, so this works on a Q0 Max
+# straight out of the box with the pad never reprogrammed.
+
+[web]
+# http://127.0.0.1:7373 -- shows what is bound, names the key you press, and
+# edits this file. Localhost only, always: it rewrites this config, and every
+# `run` here is a script the daemon executes on a keypress. 0 disables it.
+port = 7373
+
+[harness]
+# The coding agent the agent scripts open. Change it here, once, and every
+# script follows -- they read $KEYCHRON_HARNESS and $KEYCHRON_HARNESS_ARGS from
+# the daemon rather than naming an agent themselves.
+#
+# {repo} expands to this repo, so args can name files that ship alongside this
+# config without hardcoding where you cloned it.
+#
+# For codex instead:
+#     command = "codex"
+#     args = ["--dangerously-bypass-approvals-and-sandbox"]
+command = "claude"
+args = ["--settings", "{repo}/claude-pad-settings.json", "--dangerously-skip-permissions"]
+
+# `key`   is the evdev name -- press the key with the web UI open and it tells
+#         you, or run `make learn`.
+# `label` is documentation only. Record what the keycap actually shows: the
+#         legends and the keycodes have nothing to do with each other, and in
+#         six months you will not remember which pictogram was numpad 8.
+# `run`   is relative to this repo, so a clone reproduces the setup as-is.
+
+[[bind]]
+key = "KEY_KP5"
+label = "numpad 5 -- the demo key"
+run = "scripts/demo.sh"
+
+# Activities Overview, exactly like tapping Super. GNOME only.
+# [[bind]]
+# key = "KEY_KP0"
+# label = "numpad 0"
+# run = "scripts/overview.sh"
+
+# This daemon's own config page, in your browser.
+# [[bind]]
+# key = "KEY_KPENTER"
+# label = "numpad enter"
+# run = "scripts/web-ui.sh"
+
+# A plain terminal. GNOME centres it if org.gnome.mutter center-new-windows is on.
+# [[bind]]
+# key = "KEY_KP4"
+# label = "numpad 4"
+# run = "scripts/terminal.sh"
+
+# This boot's errors, in a window.
+# [[bind]]
+# key = "KEY_KP7"
+# label = "numpad 7"
+# run = "scripts/journal-errors.sh"
+
+# One agent session, permissions off. A singleton: pressing twice will not
+# start a second. Read scripts/agent-yolo.sh before binding this.
+# [[bind]]
+# key = "KEY_KP6"
+# label = "numpad 6"
+# run = "scripts/agent-yolo.sh"
+
+# Four agents, tiled in tmux. Four unattended agents at once -- know what you
+# are asking for.
+# [[bind]]
+# key = "KEY_KP3"
+# label = "numpad 3"
+# run = "scripts/agents-tmux.sh"
+
+# Close the windows this pad opened. Yours are left alone.
+# [[bind]]
+# key = "KEY_KP2"
+# label = "numpad 2"
+# run = "scripts/close-windows.sh"
+
+# Raise the terminal. See the script: Wayland cannot focus a named window.
+# [[bind]]
+# key = "KEY_KP1"
+# label = "numpad 1"
+# run = "scripts/focus-agent.sh"

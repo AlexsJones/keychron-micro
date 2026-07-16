@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="keychron-micro: a macropad with one key lit">
+  <title>keychron-micro</title>
+
+  <!-- Greys chosen to read on both a light and a dark README: GitHub renders
+       this through <img>, so CSS colour-scheme queries never run. -->
+  <g fill="none" stroke="#8b949e" stroke-width="3">
+    <rect x="10" y="8" width="108" height="112" rx="10"/>
+  </g>
+
+  <!-- Knob: the one control the daemon never sees. It stays volume, in firmware. -->
+  <circle cx="30" cy="28" r="10" fill="none" stroke="#8b949e" stroke-width="3"/>
+
+  <g fill="#8b949e" opacity="0.55">
+    <rect x="50" y="19" width="16" height="16" rx="3"/>
+    <rect x="72" y="19" width="16" height="16" rx="3"/>
+    <rect x="94" y="19" width="16" height="16" rx="3"/>
+
+    <rect x="18" y="46" width="16" height="16" rx="3"/>
+    <rect x="40" y="46" width="16" height="16" rx="3"/>
+    <rect x="62" y="46" width="16" height="16" rx="3"/>
+    <rect x="84" y="46" width="16" height="16" rx="3"/>
+
+    <rect x="18" y="68" width="16" height="16" rx="3"/>
+    <rect x="62" y="68" width="16" height="16" rx="3"/>
+    <rect x="84" y="68" width="16" height="16" rx="3"/>
+
+    <rect x="18" y="90" width="16" height="16" rx="3"/>
+    <rect x="40" y="90" width="38" height="16" rx="3"/>
+    <rect x="84" y="90" width="16" height="16" rx="3"/>
+
+    <!-- 2u column, right: the tall keys a numpad always has -->
+    <rect x="106" y="46" width="12" height="38" rx="3"/>
+  </g>
+
+  <!-- The lit key: yellow is "working" in the status model, and the whole point
+       of the thing is that one key does something. -->
+  <rect x="40" y="68" width="16" height="16" rx="3" fill="#e5c07b"/>
+  <rect x="40" y="68" width="16" height="16" rx="3" fill="none" stroke="#e5c07b"
+        stroke-width="6" opacity="0.35"/>
+</svg>

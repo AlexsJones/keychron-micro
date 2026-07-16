@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_comment": [
+    "Passed via `claude --settings` by scripts/claude-yolo.sh, so these hooks",
+    "apply ONLY to the session the pad launches -- every other Claude session on",
+    "this machine is untouched, and nothing is written to ~/.claude/settings.json.",
+    "",
+    "Each hook writes a state to the daemon's fifo; keychron-micro run paints the",
+    "board. The path is inlined rather than calling scripts/lib/status.sh: hooks",
+    "run with the session's cwd, not the repo's, so there is no reliable way to",
+    "find the repo from here. `timeout 1` because opening a fifo with no reader",
+    "blocks -- a dead daemon must not hang the session. `|| true` because the",
+    "lights are never a reason to fail a turn.",
+    "",
+    "Colours: yellow=working, magenta=needs you, green=done, red=error, white=idle."
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "timeout 1 sh -c 'printf \"idle\\n\" >\"${XDG_RUNTIME_DIR:-/tmp}/keychron-micro/status\"' 2>/dev/null || true",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "timeout 1 sh -c 'printf \"thinking\\n\" >\"${XDG_RUNTIME_DIR:-/tmp}/keychron-micro/status\"' 2>/dev/null || true",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "timeout 1 sh -c 'printf \"needs_input\\n\" >\"${XDG_RUNTIME_DIR:-/tmp}/keychron-micro/status\"' 2>/dev/null || true",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "timeout 1 sh -c 'printf \"complete\\n\" >\"${XDG_RUNTIME_DIR:-/tmp}/keychron-micro/status\"' 2>/dev/null || true",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "timeout 1 sh -c 'printf \"error\\n\" >\"${XDG_RUNTIME_DIR:-/tmp}/keychron-micro/status\"' 2>/dev/null || true",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "timeout 1 sh -c 'printf \"idle\\n\" >\"${XDG_RUNTIME_DIR:-/tmp}/keychron-micro/status\"' 2>/dev/null || true",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}
